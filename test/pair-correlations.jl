@@ -1,3 +1,4 @@
+using ParticleCorrelations
 using LinearAlgebra, Statistics, Test
 using CSV
 
@@ -22,7 +23,7 @@ using CSV
 
     # generate data from function in package
     s1 = Specie(
-        Acoustic(3; ρ = 0.0, c = 0.0),
+        HardMedium{3}(),
         Sphere(r),
         volume_fraction = φ / γ^3,
         separation_ratio = γ  # <---- changes the effective volume fraction
@@ -43,7 +44,7 @@ end
 
 @testset "Pair-correlation tests" begin
 
-    particle_medium = Acoustic(3; ρ=0.0, c=0.0);
+    particle_medium = HardMedium{3}();
 
     separation_ratio = 1.01
 
