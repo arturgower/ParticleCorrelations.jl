@@ -12,7 +12,7 @@ export calculate_pair_correlation, smooth_pair_corr_distance, pair_radial_to_pai
 using Statistics
 using LinearAlgebra
 using Reexport
-# @reexport 
+
 @reexport using MultipleScattering
 # using MultipleScattering: PhysicalMedium, AbstractParticle, Particle, Shape, Box, Sphere, Circle, outer_radius, random_particles
 
