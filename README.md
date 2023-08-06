@@ -10,7 +10,7 @@ A package to calculate typical pair correlations (or structure factor) for disor
 
 Pair correlations are used in many fields in physical chemistry, statistical physics, condensed matter physics, material science, and many more. This package aims to be useful and easy to understand for many of these communities. 
 
-## Pair correlation
+## Pair correlation and Structure factor
 
 The definition of the pair-correlation $g$, for a finite number of multi-species particles, is [1]
 
@@ -20,9 +20,23 @@ $$
 
 where $\mathbf r_j$ is the vector position of the centre of particle - $j$, $\lambda_j$ represents the size or other distinguishing properties of the type of particle, $p$ is the probability density function, and $J$ is the total number of particles. Due to the definition of the pair-correlation, when the particles become uncorrelated in the limit $|\mathbf r_1 - \mathbf r_2| \to \infty$ we have that
 
-$\lim_{|\mathbf r_1 - \mathbf r_2| \to \infty} g(\mathbf r_1, \lambda_1; \mathbf r_2, \lambda_2) = 1$  
+$\lim_{|\mathbf r_1 - \mathbf r_2| \to \infty} g(\mathbf r_1, \lambda_1; \mathbf r_2, \lambda_2) = 1$.  
+
+So far this package focuses on isotropic and statisticall homogeneous materials. Both these assumptions together imply that 
+
+$
+g(\mathbf r_1, \lambda_1; \mathbf r_2, \lambda_2) = g(|\mathbf r_1 - \mathbf r_2|; \lambda_1, \lambda_2),
+$
+
+where $|\mathbf r_1 - \mathbf r_2|$ is the distance between the particle centres.
+
+Adding definitions and formulas for the structure factors...
 
 ## Particle configurations
+
+formulas for discrete particles...
+
+## Pair correlation from particles
 
 We can calculate the pair-correlation from a configuration of particles. 
 
