@@ -16,7 +16,7 @@ using Reexport
 @reexport using MultipleScattering
 # using MultipleScattering: PhysicalMedium, AbstractParticle, Particle, Shape, Box, Sphere, Circle, outer_radius, random_particles
 
-import MultipleScattering: outer_radius, volume
+import MultipleScattering: outer_radius, volume, random_particles
 
 using HCubature: hcubature, hquadrature
 using ClassicalOrthogonalPolynomials: Legendre

@@ -74,11 +74,11 @@ plot(pair.r, 1.0 .+ pair.dp,
     xlab = "distance", ylab = "P-Y"
 )
 ```
-![../PY-30-pair.png](../assets/PY-30-pair.png)
+![../PY-30-pair.png](docs/src/assets/PY-30-pair.png)
 
 which we can compare with Figure 8.3.1 from [1] below.
 
-![../TKD-PY-30.jpg](../assets/TKD-PY-30.jpg)
+![../TKD-PY-30.jpg](docs/src/assets/TKD-PY-30.jpg)
 
 Note that for $x < 1$ the two particles of radius 0.5 would overlap, so the pair correlation should be zero. Also note that `dp` is the variation from uncorrelated, which is why we add 1.0 to get the pair correlation.
 
