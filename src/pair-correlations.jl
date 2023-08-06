@@ -108,12 +108,12 @@ end
 
 
 """
-    DiscretePairCorrelation(s::Specie, pairtype::PercusYevick, distances::AbstractVector)
+    DiscretePairCorrelation(s::Specie, pairtype::PairCorrelationType)
 
-Generates a DiscretePairCorrelation for the specie `s` by using the Percus-Yevick approximation. This distribution assumes particles are distributed accoriding to a random uniform distribution, and that particles can not overlap.
+Generates a DiscretePairCorrelation for the specie `s` by using the type of paircorrelation pairtype provided.
 """
-function DiscretePairCorrelation(s::Specie{Dim}, pairtype::PT;
-        distances::AbstractVector{T} = Float64[],
+function DiscretePairCorrelation(s::Specie{Dim}, pairtype::PT; 
+        distances::AbstractVector{T} = Float64[]
     ) where {Dim,  T<:AbstractFloat, PT <: PairCorrelationType}
 
     r1 = exclusion_distance(s)
@@ -139,7 +139,7 @@ function DiscretePairCorrelation(s::Specie{Dim}, pairtype::PT;
     else false
     end
 
-    d = DiscretePairCorrelation(s, distances, pairtype);
+    d = DiscretePairCorrelation(s, pairtype, distances);
     dp = d.dp
 
     if automatic_dist
@@ -177,7 +177,7 @@ function DiscretePairCorrelation(s1::Specie{Dim}, s2::Specie{Dim}, pairtype::Pai
     return DiscretePairCorrelation(sm, pairtype; kws...)
 end
 
-function DiscretePairCorrelation(s::Specie{3}, distances::AbstractVector{T}, pairtype::PercusYevick{3}) where T
+function DiscretePairCorrelation(s::Specie{3, P} where P<:AbstractParticle{3}, pairtype::PercusYevick{3}, distances::AbstractVector{T}) where T
 
     R = 2 * outer_radius(s) * s.separation_ratio
     numdensity = number_density(s)
@@ -237,7 +237,7 @@ function DiscretePairCorrelation(s::Specie{3}, distances::AbstractVector{T}, pai
     return DiscretePairCorrelation(3, distances, dp; number_density = numdensity, tol = pairtype.rtol)
 end
 
-function DiscretePairCorrelation(s::Specie{Dim}, distances::AbstractVector{T}, pairtype::MonteCarloPairCorrelation{Dim}) where {T, Dim}
+function DiscretePairCorrelation(s::Specie{Dim}, pairtype::MonteCarloPairCorrelation{Dim}, distances::AbstractVector{T}) where {T, Dim}
 
     numdensity = number_density(s)
     a = outer_radius(s)
@@ -267,7 +267,7 @@ function DiscretePairCorrelation(s::Specie{Dim}, distances::AbstractVector{T}, p
         # ps = filter(p -> p ⊆ region_shape, ps);
         particle_centres = origin.(filter(p -> p ⊆ region_shape, ps));
 
-        DiscretePairCorrelation(particle_centres, distances, pairtype;
+        DiscretePairCorrelation(particle_centres, distances;
             region_particle_centres = region_shape_numdensity
         )
     end
@@ -291,18 +291,26 @@ function hole_correction_pair_correlation(x1::AbstractVector{T},s1::Specie, x2::
 end
 
 
+function DiscretePairCorrelation(particles::Vector{p} where p <: AbstractParticle{Dim}, distances::AbstractVector{T}; kws...
+) where {T, Dim}
+
+    particle_centres = [origin(p) for p in particles]
+
+    return DiscretePairCorrelation(particle_centres, distances; Dim = Dim, kws...)
+end
+
 """
-    DiscretePairCorrelation(particle_centres::Vector, R::T, MonteCarloPairCorrelation{Dim}())
+    DiscretePairCorrelation(particle_centres::Vector, distances::AbstractVector, MonteCarloPairCorrelation{Dim}())
 
 Calculates the isotropic pair correlation from one configuration of particles. To use many configurations of particles, call this function for each, then take the average of the pair-correlation.
 """
-function DiscretePairCorrelation(particle_centres::Vector{v} where v <: AbstractVector{T}, distances::AbstractVector{T}, pairtype::MonteCarloPairCorrelation{Dim};
+function DiscretePairCorrelation(particle_centres::Vector{v} where v <: AbstractVector{T}, distances::AbstractVector{T};
+        Dim = length(particle_centres[1]),
         dz::T = distances[2] - distances[1],
         maximum_distance::T = distances[end] + dz/2,
         minimum_distance::T = distances[1] - dz/2,
         region_particle_centres::Shape = Box(zeros(Dim))
-    ) where {T, Dim}
-
+    ) where {T}
 
     p2s = particle_centres
 
