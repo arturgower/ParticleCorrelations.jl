@@ -25,7 +25,7 @@ $\lim_{|\mathbf r_1 - \mathbf r_2| \to \infty} g(\mathbf r_1, \lambda_1; \mathbf
 So far this package focuses on isotropic and statisticall homogeneous materials. Both these assumptions together imply that 
 
 $$
-g(\mathbf r_1, \lambda_1; \mathbf r_2, \lambda_2) = \frac{p(\mathbf r_1, \lambda_1; \mathbf r_2, \lambda_2)}{p(\mathbf r_1, \lambda_1)p(\mathbf r_2, \lambda_2)}\frac{J -1}{J}
+g(\mathbf r_1, \lambda_1; \mathbf r_2, \lambda_2) = g(|\mathbf r_1 - \mathbf r_2|; \lambda_1, \lambda_2),
 $$  
 
 where $|\mathbf r_1 - \mathbf r_2|$ is the distance between the particle centres.
