@@ -19,9 +19,10 @@ using Reexport
 import MultipleScattering: outer_radius, volume, random_particles
 
 using HCubature: hcubature, hquadrature
-using ClassicalOrthogonalPolynomials: Legendre
+# using ClassicalOrthogonalPolynomials: Legendre
+using LegendrePolynomials
 
 include("particles.jl")
-include("pair-correlations.jl")
+include("pair-correlation.jl")
 
 end

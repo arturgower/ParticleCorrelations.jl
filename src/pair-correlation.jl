@@ -64,40 +64,41 @@ end
 """
     DiscretePairCorrelation
 
-Represents the pair correlation between two types of species, which could be the same.
+Represents the pair correlation between two types of particles. The particles could be the same or different species.
 """
 struct DiscretePairCorrelation{Dim} <: PairCorrelation
     "distance between particles centres"
     r::Vector{Float64}
-    "variation of the pair correlation from 1 (uncorrelated case)"
-    dp::Vector{Float64}
+    "the value of the pair correlation"
+    g::Vector{Float64}
     "Minimal distance between particle centres'"
     minimal_distance::Float64
     "the average number of particles divided by the volume containing the centre of the particles"
     number_density::Float64
 
-    function DiscretePairCorrelation{Dim}(r::AbstractVector, dp::AbstractVector, minimal_distance::Float64, number_density::Float64;
+    function DiscretePairCorrelation{Dim}(r::AbstractVector, g::AbstractVector, minimal_distance::Float64, number_density::Float64;
             tol::AbstractFloat = 1e-3 
         ) where Dim
-        if !isempty(dp) && size(dp) != size(r)
-            @error "the size of vector of distances `r` (currently $(size(r))) should be the same as the size of the pair-correlation variation `dp` (currently $(size(dp)))."
+        if !isempty(g) && size(g) != size(r)
+            @error "the size of vector of distances `r` (currently $(size(r))) should be the same as the size of the pair-correlation variation `g` (currently $(size(g)))."
         end
-        if !isempty(dp) && abs(dp[end]) > tol
-            @warn "For the pair-correlation to be accurate, we expect it to be long enough (in terms of the distance `r`) such that the particle positions become uncorrelatd. They become uncorrelated when `dp[end]` tends to zero."
+        if !isempty(g) && abs(g[end]) > tol
+            @warn "For the pair-correlation to be accurate, we expect it to be long enough (in terms of the distance `r`) such that the particle positions become uncorrelatd. They become uncorrelated when `g[end]` tends to zero."
         end
-        new{Dim}(r,dp,minimal_distance,number_density)
+        new{Dim}(r,g,minimal_distance,number_density)
     end
 end
 
-function DiscretePairCorrelation(Dim::Int,r::AbstractVector, dp::AbstractVector;
+function DiscretePairCorrelation(Dim::Int,r::AbstractVector, g::AbstractVector;
     number_density::AbstractFloat = 0.0,
     minimal_distance::AbstractFloat = r[1],
     tol::AbstractFloat = 1e-3
 ) 
-    DiscretePairCorrelation{Dim}(r,dp,minimal_distance,number_density; tol = tol)
+    DiscretePairCorrelation{Dim}(r,g,minimal_distance,number_density; tol = tol)
 end
 
-PairCorrelation(Dim::Int, r::AbstractVector{T},dp::AbstractVector{T}) where T <: AbstractFloat = DiscretePairCorrelation(Dim,r,dp)
+
+PairCorrelation(Dim::Int, r::AbstractVector{T},g::AbstractVector{T}) where T <: AbstractFloat = DiscretePairCorrelation(Dim,r,g)
 
 # Have no pair correlation, then only hole correction will be used.
 function DiscretePairCorrelation(s1::Specie{Dim}, s2::Specie{Dim}) where Dim
@@ -140,20 +141,20 @@ function DiscretePairCorrelation(s::Specie{Dim}, pairtype::PT;
     end
 
     d = DiscretePairCorrelation(s, pairtype, distances);
-    dp = d.dp
+    g = d.g
 
     if automatic_dist
-        i = findfirst(reverse(abs.(d.dp)) .> pairtype.rtol)
+        i = findfirst(reverse(abs.(d.g .- 1)) .> pairtype.rtol)
         if isnothing(i)
-            dp = typeof(d.dp)[]
-            distances = typeof(d.dp)[]
+            g = typeof(d.g)[]
+            distances = typeof(d.g)[]
         elseif i > 1
-            dp = d.dp[1:end-i+2]
+            g = d.g[1:end-i+2]
             distances = distances[1:end-i+2]
         end
     end
 
-    return DiscretePairCorrelation(Dim, distances, dp; number_density = d.number_density)
+    return DiscretePairCorrelation(Dim, distances, g; number_density = d.number_density)
 end
 
 function DiscretePairCorrelation(s1::Specie{Dim}, s2::Specie{Dim}, pairtype::PairCorrelationType; kws...) where Dim
@@ -234,7 +235,7 @@ function DiscretePairCorrelation(s::Specie{3, P} where P<:AbstractParticle{3}, p
         9f * (1 + f) / (2 * η * (1 - f)^3) + 2 / (η*pi) * int_ker
     end
 
-    return DiscretePairCorrelation(3, distances, dp; number_density = numdensity, tol = pairtype.rtol)
+    return DiscretePairCorrelation(3, distances, dp .+ 1.0; number_density = numdensity, tol = pairtype.rtol)
 end
 
 function DiscretePairCorrelation(s::Specie{Dim}, pairtype::MonteCarloPairCorrelation{Dim}, distances::AbstractVector{T}) where {T, Dim}
@@ -280,7 +281,7 @@ function DiscretePairCorrelation(s::Specie{Dim}, pairtype::MonteCarloPairCorrela
         @warn "The requested volume fraction of the pair correlation was $(s.volume_fraction). The achieved volume fraction was $(achieved_number_density * volume(s)) with std $( std(nums) *  volume(s))"
     end
 
-    return DiscretePairCorrelation(Dim, distances, mean(d.dp for d in dpcs); number_density = achieved_number_density)
+    return DiscretePairCorrelation(Dim, distances, mean(d.g for d in dpcs); number_density = achieved_number_density)
 
 end
 
@@ -361,10 +362,10 @@ function DiscretePairCorrelation(particle_centres::Vector{v} where v <: Abstract
     # scaling = (1 / ((2 * (Dim - 1)) * pi * dz)) / (J1 * numdensity)
     scaling = (3 / ((Dim + 1) * pi)) / (J1 * numdensity)
 
-    # dp = scaling .* bins ./ (distances .^(Dim - 1)) .- T(1)
-    dp = scaling .* bins ./ ((distances .+ dz/2) .^ Dim - (distances .- dz/2) .^ Dim) .- T(1)
+    # g = scaling .* bins ./ (distances .^(Dim - 1))
+    g = scaling .* bins ./ ((distances .+ dz/2) .^ Dim - (distances .- dz/2) .^ Dim) 
 
-    return DiscretePairCorrelation(Dim,distances,dp; number_density = numdensity)
+    return DiscretePairCorrelation(Dim,distances,g; number_density = numdensity)
 
 end
 
@@ -386,10 +387,13 @@ function smooth_pair_corr_distance(pair_corr_distance::Function, a12::T; smoothi
     deleteat!(zs,inds)
     data = pair_corr_distance.(zs)
 
-    P = Legendre()
-    ls = 0:polynomial_order |> collect
+    # P = Legendre()
+    # ls = 0:polynomial_order |> collect
 
-    Pmat = P[2zs ./ max_distance .- T(1.0), ls .+ 1];
+    # Pmat = P[2zs ./ max_distance .- T(1.0), ls .+ 1];
+
+    Pmats = [collectPl(2z / max_distance - T(1.0), lmax = polynomial_order) for z in zs];
+    Pmat = hcat(Pmats...) |> transpose;
 
     # projector_mat = inv(transpose(Pmat) * (Pmat)) * transpose(Pmat);
     # pls = projector_mat * data
@@ -397,7 +401,8 @@ function smooth_pair_corr_distance(pair_corr_distance::Function, a12::T; smoothi
     pls = Pmat \ data
 
     return function (z)
-        Ps = P[2z / max_distance - T(1.0), ls .+ 1]
+        # Ps = P[2z / max_distance - T(1.0), ls .+ 1]
+        Ps = collectPl(2z / max_distance - T(1.0), lmax = polynomial_order) |> collect
         return sum(Ps .* pls)
     end
 end
@@ -431,7 +436,7 @@ function gls_pair_radial_fun(pair_corr_distance::Union{Function,AbstractArray}, 
             sigma_approximation = true
         ) where T
 
-    P = Legendre()
+    # P = Legendre()
     ls = 0:polynomial_order |> collect
 
     if sigma_approximation
@@ -442,7 +447,11 @@ function gls_pair_radial_fun(pair_corr_distance::Union{Function,AbstractArray}, 
     S = diagm(sigmas)
 
     us = LinRange(-1.0, 1.0, mesh_size)
-    Pmat = P[us, ls .+ 1];
+
+    # Pmat = P[us, ls .+ 1];
+    Pmats = [collectPl(u, lmax = polynomial_order) for u in us];
+    Pmat = hcat(Pmats...) |> transpose;
+
     Pmat = [Pmat[i] * T(2i[2] - 1) / (4pi) for i in CartesianIndices(Pmat)];
 
     # Pmat = S * Pmat;
@@ -473,10 +482,13 @@ The function `pair_radial` is calculated from the function `pair_corr_distance`,
 function pair_radial_fun(pair_corr_distance::Function, a12::T; polynomial_order::Int = 15, kws...) where T
 
     gls_fun = gls_pair_radial_fun(pair_corr_distance, a12; polynomial_order = polynomial_order, kws...)
-    P = Legendre()
+    # P = Legendre()
 
     return function (r1,r2,u)
-        Pus = P[u, 1:(polynomial_order + 1) |> collect] .* (2 .* (0:polynomial_order) .+ 1) ./ (4pi)
+        # Pus = P[u, 1:(polynomial_order + 1) |> collect] .* (2 .* (0:polynomial_order) .+ 1) ./ (4pi)
+
+        Pus = collectPl(u, lmax = polynomial_order) |> collect
+        Pus = Pus .* (2 .* (0:polynomial_order) .+ 1) ./ (4pi)
 
         return sum(Pus .* gls_fun(r1,r2))
     end

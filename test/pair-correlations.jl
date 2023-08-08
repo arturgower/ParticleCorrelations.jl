@@ -13,7 +13,7 @@ using CSV
     # The data assume R = 1, where R is the minimum distance between the centres of any two spheres.
     file = CSV.File("$(stdir)data/P-Y_f=0.25.txt"; header = 1)
     distances = file.r
-    dp_reference = file.field .- 1.0
+    g_reference = file.field 
 
     # NOTE: increasing the exclusion_distance would increase the effective volume fraction needed for PY. The saved data assumes and effective volume fraction of 25%
 
@@ -38,6 +38,6 @@ using CSV
 
     i = findfirst(distances .> 1.0)
 
-    @test norm(py.dp[i:end] - dp_reference[i:end]) / norm(dp_reference[i:end]) < 0.02
-    @test abs(py.dp[i+1] - dp_reference[i+1]) / norm(dp_reference[i+1]) < 0.01
+    @test norm(py.g[i:end] - g_reference[i:end]) / norm(g_reference[i:end]) < 0.02
+    @test abs(py.g[i+1] - g_reference[i+1]) / norm(g_reference[i+1]) < 0.01
 end
