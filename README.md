@@ -81,7 +81,7 @@ rs = 0.0:0.4:8.0
 pair = DiscretePairCorrelation(particles, rs)
 
 # If you have the Plots package
-plot(pair.r, 1 .+ pair.dp)
+plot(pair.r, pair.g)
 ```
 ![../example_random_particles.png](docs/src/assets/example_random_particles.png)
 
@@ -116,7 +116,7 @@ s = Specie(
 pair = DiscretePairCorrelation(s, pairtype, rs)
 
 # If you have the Plots package
-plot(pair.r, 1 .+ pair.dp)
+plot(pair.r, pair.g)
 ```
 ![../monte-carlo-pair.png](docs/src/assets/monte-carlo-pair.png)
 
@@ -126,7 +126,7 @@ plot(pair.r, 1 .+ pair.dp)
 Let us consider a material filled with only one type of particle and use the Percus-Yevick approximation to calculate the pair-correlation for 3D hard spheres. That is, sphere which do not attract of repel each other. For details see [Notes on Percus-Yevick](docs/src//theory/P-Y.pdf) [2].
 ```julia
 # choose the type of pair correlation
-pairtype = PercusYevick(3; rtol = 1e-2, maxlength = 200)
+pairtype = PercusYevick(3; rtol = 1e-3, maxlength = 200)
 
 # Percus-Yevick is currently implemented only for 3D. So we need to change the type of particle
 
@@ -144,7 +144,7 @@ We can plot the result of the Percus-Yevick approximation with the package Plots
 ```julia
 using Plots
 
-plot(pair.r, 1.0 .+ pair.dp,
+plot(pair.r, pair.g,
     xlab = "distance", ylab = "P-Y"
 )
 ```
