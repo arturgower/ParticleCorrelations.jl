@@ -67,10 +67,9 @@ end
 
     @test pair.g[end] - 1.0 < 1e-8
 
-    sfactor = structure_factor(pair)
+    sfactor = structure_factor(pair; dk = 0.2, maxk = 20.0)
 
     ks = sfactor.k
-
     # using Plots 
 
     # plot(ks, sfactor.S, xlims = (0.,20))

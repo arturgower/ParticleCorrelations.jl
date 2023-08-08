@@ -32,15 +32,15 @@ end
 
 structure_factor(pair::DiscretePairCorrelation; kws...) = DiscreteStructureFactor(pair; kws...)
 
-function DiscreteStructureFactor(pair::DiscretePairCorrelation{2}; dk::AbstractFloat = 0.0, kmax::AbstractFloat = 0.0)
+function DiscreteStructureFactor(pair::DiscretePairCorrelation{2}; dk::AbstractFloat = 0.0, maxk::AbstractFloat = 0.0)
 
     rs = pair.r
     drs = rs[2:end] - circshift(rs,1)[2:end]
     dr = mean(drs)
 
-    # estimate kmax from max dr 
-    if kmax == 0.0
-        kmax = 2π / dr 
+    # estimate maxk from max dr 
+    if maxk == 0.0
+        maxk = 2π / dr 
     end    
 
     # estimate dk 
@@ -50,28 +50,30 @@ function DiscreteStructureFactor(pair::DiscretePairCorrelation{2}; dk::AbstractF
     end
     
     # structure factor not correct for k = 0
-    ks = dk:dk:kmax
+    ks = dk:dk:maxk
     ks = ks[1:end-1] # the last term is the same as k = 0 when using exp(iu * dr * k)
 
     σs = trapezoidal_scheme(rs)
 
-    J0 = [besselj(0,k * r) for k in ks, r in rs]
+    M = [besselj(0,k * r) for k in ks, r in rs]
 
     f = σs .* (pair.g .- 1.0) .* rs 
-    S = J0 * f
+    S = M * f
     S = 1.0 .+ (2π * pair.number_density) .* S
 
-    # Need to add to the integral the pair of the pair correlation that is missing
-    rs = 0.0:dr:rs[end]
-    σs = trapezoidal_scheme(rs)
+    # Need to add to the region of the integral where the pair correlation is zero
+    if rs[1] >= dr 
+        rs = 0.0:dr:rs[1]
+        σs = trapezoidal_scheme(rs)
 
-    J0 = [besselj(0, k * r) for k in ks, r in rs]
+        M = [besselj(0, k * r) for k in ks, r in rs]
 
-    w = - rs .* σs  
-    s0 = J0 * w
-    s0 = 1 .+ (2π * pair.number_density) .* s0
+        w = - rs .* σs  
+        s0 = M * w
+        s0 = 1 .+ (2π * pair.number_density) .* s0
 
-    s = s + s0
+        s = s + s0
+    end   
 
     return DiscreteStructureFactor(2, ks, S; 
         number_density = pair.number_density, 
@@ -79,15 +81,15 @@ function DiscreteStructureFactor(pair::DiscretePairCorrelation{2}; dk::AbstractF
     )
 end
 
-function DiscreteStructureFactor(pair::DiscretePairCorrelation{3}; dk::AbstractFloat = 0.0, kmax::AbstractFloat = 0.0)
+function DiscreteStructureFactor(pair::DiscretePairCorrelation{3}; dk::AbstractFloat = 0.0, maxk::AbstractFloat = 0.0)
 
     rs = pair.r
     drs = rs[2:end] - circshift(rs,1)[2:end]
     dr = mean(drs)
 
-    # estimate kmax from max dr 
-    if kmax == 0.0
-        kmax = 2π / dr 
+    # estimate maxk from max dr 
+    if maxk == 0.0
+        maxk = 2π / dr 
     end    
 
     # estimate dk 
@@ -97,28 +99,30 @@ function DiscreteStructureFactor(pair::DiscretePairCorrelation{3}; dk::AbstractF
     end
     
     # structure factor not correct for k = 0
-    ks = dk:dk:kmax
+    ks = dk:dk:maxk
     ks = ks[1:end-1] # the last term is the same as k = 0 when using exp(iu * dr * k)
 
     σs = trapezoidal_scheme(rs)
 
-    J0 = [sin(k * r) / (k * r) for k in ks, r in rs]
+    M = [sin(k * r) / (k * r) for k in ks, r in rs]
 
     w = (pair.g .- 1.0) .* rs .^2 .* σs  
-    s = J0 * w
+    s = M * w
     s = 1 .+ (4π * pair.number_density) .* s
 
     # Need to add to the integral the pair of the pair correlation that is missing
-    rs = 0.0:dr:rs[end]
-    σs = trapezoidal_scheme(rs)
+    if rs[1] >= dr 
+        rs = 0.0:dr:rs[1]
+        σs = trapezoidal_scheme(rs)
 
-    J0 = [sin(k * r) / (k) for k in ks, r in rs]
+        M = [sin(k * r) / (k) for k in ks, r in rs]
 
-    w = - rs .* σs  
-    s0 = J0 * w
-    s0 = 1 .+ (4π * pair.number_density) .* s0
+        w = - rs .* σs  
+        s0 = M * w
+        s0 = (4π * pair.number_density) .* s0
 
-    s = s + s0
+        s = s + s0
+    end    
 
     return DiscreteStructureFactor(3, ks, s; 
         number_density = pair.number_density, 

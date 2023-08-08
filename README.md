@@ -77,7 +77,7 @@ plot!(axis = false, xlab = "", ylab = "")
 
 
 ```julia
-rs = 0.0:0.4:8.0
+rs = 0.2:0.4:8.0
 pair = DiscretePairCorrelation(particles, rs)
 
 # If you have the Plots package
@@ -89,7 +89,6 @@ plot(pair.r, pair.g)
 
 Here is a more convienient syntax to calculate pair-correlation from specific particle configurations.
 ```julia
-
 dim = 2;
 
 pairtype = MonteCarloPairCorrelation(dim; 
@@ -120,6 +119,19 @@ plot(pair.r, pair.g)
 ```
 ![../monte-carlo-pair.png](docs/src/assets/monte-carlo-pair.png)
 
+From the pair-correlation we can easily calculate the structure factor by using:
+
+```julia
+
+rs = pair.r
+
+sfactor = structure_factor(pair; dk = 0.2, maxk = 40.0)
+
+plot(sfactor.k, sfactor.S,
+    xlab = "k", lab = "struc. factor")
+```
+![../monte-carlo-pair.png](docs/src/assets/monte-carlo-structure-factor.png)
+
 
 ## Percus-Yevick
 
@@ -145,7 +157,8 @@ We can plot the result of the Percus-Yevick approximation with the package Plots
 using Plots
 
 plot(pair.r, pair.g,
-    xlab = "distance", ylab = "P-Y"
+    xlab = "distance", lab = "P-Y",
+    xlims = (0.0, 5.0)
 )
 ```
 ![../PY-30-pair.png](docs/src/assets/PY-30-pair.png)
@@ -155,7 +168,14 @@ which we can compare with Figure 8.3.1 from [1] below.
 ![../TKD-PY-30.jpg](docs/src/assets/TKD-PY-30.jpg)
 
 
-Note that for $x < 1$ the two particles of radius 0.5 would overlap, so the pair correlation should be zero. Also note that `dp` is the variation from uncorrelated, which is why we add 1.0 to get the pair correlation.
+Note that for $x < 1$ the two particles of radius 0.5 would overlap, so the pair correlation should be zero. 
+
+We can now calculate the structure factor:
+```julia
+sfactor = structure_factor(pair; dk = 0.2, maxk = 20.0)
+
+plot(sfactor.k, sfactor.S)
+```
 
 ## Bespoke pair-correlation
 

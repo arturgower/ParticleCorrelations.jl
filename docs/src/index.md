@@ -7,8 +7,8 @@
 Install Julia v1.0 or later, then run
 
 ```julia
-] # to enter the package mode
-add ParticleCorrelations
+using Pkg # or enter the package mode by pressing ]
+Pkg.add("ParticleCorrelations")
 ```
 Press backspace to exit the package mode.
 
