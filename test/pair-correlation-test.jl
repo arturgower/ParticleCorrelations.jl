@@ -15,7 +15,7 @@ using CSV
     particle_shapes = [Sphere(dim,radius)]
 
     # choose a region to place the particles within
-    dimensions = repeat([100.0],dim)
+    dimensions = repeat([90.0],dim)
     region_shape = Box(dimensions)
 
     # create a uniform random arrangement of particles using Sequential Addition 
@@ -26,9 +26,20 @@ using CSV
     )
 
     correlation_length = 5.0
-    ks = 0.5:0.1:10.0
+    ks = 1.5:0.1:10.0
 
     sfactor = structure_factor(particles, ks; correlation_length = correlation_length)
+
+    # using MultipleScattering
+    # plot(time_to_frequency(sfactor.S, sfactor.k) |> real)
+
+    # ω = t_to_ω(sfactor.k)
+
+    # gs = time_to_frequency(sfactor.S, sfactor.k);
+    # gs[20:end] .= 0.0
+
+    # plot(ω_to_t(ω), frequency_to_time(gs, ω))
+    # plot!(sfactor.k, sfactor.S)
 
     # using Plots
     # plot(sfactor.k, sfactor.S)
@@ -44,6 +55,7 @@ using CSV
     # plot(sfactor.k, sfactor.S)
     # plot!(sfactor2.k, sfactor2.S, linestyle = :dash)
 
+    @test norm(sfactor.S - sfactor2.S) / norm(sfactor.S) < 0.1
 
 
     # choose the spatial dimension
