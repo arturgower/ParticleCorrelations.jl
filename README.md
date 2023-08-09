@@ -125,7 +125,8 @@ From the pair-correlation we can easily calculate the structure factor by using:
 
 rs = pair.r
 
-sfactor = structure_factor(pair; dk = 0.2, maxk = 40.0)
+ks = 0.2:0.2:20.0
+sfactor = structure_factor(pair, ks)
 
 plot(sfactor.k, sfactor.S,
     xlab = "k", lab = "struc. factor")
@@ -141,6 +142,9 @@ Let us consider a material filled with only one type of particle and use the Per
 pairtype = PercusYevick(3; rtol = 1e-3, maxlength = 200)
 
 # Percus-Yevick is currently implemented only for 3D. So we need to change the type of particle
+
+# choose the particle radius
+radius = 0.5
 
 s = Specie(
     HardMedium{3}(),
@@ -172,10 +176,13 @@ Note that for $x < 1$ the two particles of radius 0.5 would overlap, so the pair
 
 We can now calculate the structure factor:
 ```julia
-sfactor = structure_factor(pair; dk = 0.2, maxk = 20.0)
+ks = 0.2:0.2:20.0
+sfactor = structure_factor(pair, ks)
 
-plot(sfactor.k, sfactor.S)
+plot(sfactor.k, sfactor.S,
+    xlims = "ks", lab = "struct. factor")
 ```
+![../PY-30-struct.png](docs/src/assets/PY-30-struct.png)
 
 ## Bespoke pair-correlation
 
