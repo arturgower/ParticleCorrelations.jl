@@ -100,21 +100,53 @@ function DiscretePairCorrelation(Dim::Int,r::AbstractVector, g::AbstractVector;
 end
 
 
-PairCorrelation(Dim::Int, r::AbstractVector{T},g::AbstractVector{T}) where T <: AbstractFloat = DiscretePairCorrelation(Dim,r,g)
 
 # Have no pair correlation, then only hole correction will be used.
 function DiscretePairCorrelation(s1::Specie{Dim}, s2::Specie{Dim}) where Dim
     T = typeof(outer_radius(s1))
-
+    
     return DiscretePairCorrelation(Dim,T[],T[]; minimal_distance = s1.separation_ratio * outer_radius(s1) + s2.separation_ratio * outer_radius(s2))
 end
 
+pair_correlation(Dim::Int, r::AbstractVector{T},g::AbstractVector{T}) where T <: AbstractFloat = DiscretePairCorrelation(Dim,r,g)
 
 """
-    DiscretePairCorrelation(s::Specie, pairtype::PairCorrelationType)
+    pair_correlation(s::Specie, pairtype::PairCorrelationType)
 
-Generates a DiscretePairCorrelation for the specie `s` by using the type of paircorrelation pairtype provided.
+Generates a DiscretePairCorrelation for the specie `s` by using the type of paircorrelation pairtype provided. The distances where the pair correlation is sampled is calculated from the properties of pairtype.
 """
+pair_correlation(s::Specie, pairtype::PT; kws...) where PT <: PairCorrelationType = DiscretePairCorrelation(s, pairtype; kws...)
+
+"""
+    pair_correlation(s::Specie, pairtype::PairCorrelationType, distances::AbstractVector)
+
+Generates a DiscretePairCorrelation for the specie `s` by using the type of paircorrelation pairtype provided, and for the radial distances provided.
+"""
+pair_correlation(s::Specie, pairtype::PairCorrelationType, distances::AbstractVector) = DiscretePairCorrelation(s, pairtype, distances)
+
+"""
+    pair_correlation(s1::Specie, s2::Specie, pairtype::PairCorrelationType; kws...)
+
+currently provides an approximation for the pair-correlation for two different types of particles `s1` and `s2`.    
+"""
+pair_correlation(s1::Specie, s2::Specie, pairtype::PairCorrelationType; kws...) = DiscretePairCorrelation(s1, s2, pairtype; kws...)
+
+
+"""
+    pair_correlation(particles::Vector{AbstractParticle}, distances::AbstractVector)
+
+Calculates the isotropic pair correlation from one configuration of particles. To use many configurations of particles, call this function for each, then take the average of the pair-correlation.
+"""
+pair_correlation(particles::Vector{p} where p <: AbstractParticle, distances::AbstractVector; kws...) = DiscretePairCorrelation(particles, distances; kws...) 
+
+"""
+    pair_correlation(particle_centres::Vector, distances::AbstractVector)
+
+Calculates the isotropic pair correlation from one configuration of particles. To use many configurations of particles, call this function for each, then take the average of the pair-correlation.
+"""
+pair_correlation(particle_centres::Vector{v} where v <: AbstractVector, distances::AbstractVector; kws...) = DiscretePairCorrelation(particle_centres, distances; kws...)
+
+
 function DiscretePairCorrelation(s::Specie{Dim}, pairtype::PT; 
         distances::AbstractVector{T} = Float64[]
     ) where {Dim,  T<:AbstractFloat, PT <: PairCorrelationType}
@@ -158,6 +190,7 @@ function DiscretePairCorrelation(s::Specie{Dim}, pairtype::PT;
 
     return DiscretePairCorrelation(Dim, distances, g; number_density = d.number_density)
 end
+
 
 function DiscretePairCorrelation(s1::Specie{Dim}, s2::Specie{Dim}, pairtype::PairCorrelationType; kws...) where Dim
 
@@ -294,27 +327,22 @@ function hole_correction_pair_correlation(x1::AbstractVector{T},s1::Specie, x2::
 end
 
 
-function DiscretePairCorrelation(particles::Vector{p} where p <: AbstractParticle{Dim}, distances::AbstractVector{T}; kws...
-) where {T, Dim}
+function DiscretePairCorrelation(particles::Vector{p} where p <: AbstractParticle, distances::AbstractVector{T}; kws...
+) where {T}
 
     particle_centres = [origin(p) for p in particles]
 
-    return DiscretePairCorrelation(particle_centres, distances; Dim = Dim, kws...)
+    return DiscretePairCorrelation(particle_centres, distances; kws...)
 end
 
-"""
-    DiscretePairCorrelation(particle_centres::Vector, distances::AbstractVector, MonteCarloPairCorrelation{Dim}())
-
-Calculates the isotropic pair correlation from one configuration of particles. To use many configurations of particles, call this function for each, then take the average of the pair-correlation.
-"""
 function DiscretePairCorrelation(particle_centres::Vector{v} where v <: AbstractVector{T}, distances::AbstractVector{T};
-        Dim = length(particle_centres[1]),
         dz::T = distances[2] - distances[1],
         maximum_distance::T = distances[end] + dz/2,
         minimum_distance::T = distances[1] - dz/2,
-        region_particle_centres::Shape = Box(zeros(Dim))
+        region_particle_centres::Shape = Box(zeros(length(particle_centres[1])))
     ) where {T}
 
+    Dim = length(particle_centres[1])
     p2s = particle_centres
 
     if norm(region_particle_centres.dimensions) == 0.0

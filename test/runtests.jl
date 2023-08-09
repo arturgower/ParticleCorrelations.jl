@@ -1,5 +1,5 @@
 using ParticleCorrelations
 using Test, Statistics
 
-include("pair-correlations.jl")
-include("radial-symmetry.jl")
+include("pair-correlation-test.jl")
+include("radial-symmetry-test.jl")

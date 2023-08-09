@@ -78,7 +78,7 @@ plot!(axis = false, xlab = "", ylab = "")
 
 ```julia
 rs = 0.2:0.4:8.0
-pair = DiscretePairCorrelation(particles, rs)
+pair = pair_correlation(particles, rs)
 
 # If you have the Plots package
 plot(pair.r, pair.g)
@@ -112,7 +112,7 @@ s = Specie(
     separation_ratio = 1.0 # minimal distance from this particle = r * (separation_ratio - 1.0) 
 );
 
-pair = DiscretePairCorrelation(s, pairtype, rs)
+pair = pair_correlation(s, pairtype, rs)
 
 # If you have the Plots package
 plot(pair.r, pair.g)
@@ -149,7 +149,7 @@ s = Specie(
 );
 
 # by ommiting the distances argument it will be calculated from the parameters provided by pairtype
-pair = DiscretePairCorrelation(s, pairtype)
+pair = pair_correlation(s, pairtype)
 ```
 
 We can plot the result of the Percus-Yevick approximation with the package Plots:
@@ -196,7 +196,7 @@ my_pair_correlation = 1.0 .+ 0.2 .* sin.(rs) ./ rs.^3
 # spatial dimension. Needed for Monte Carlo or Structure factor
 dim = 3
 
-pair = DiscretePairCorrelation(dim, rs, my_pair_correlation)
+pair = pair_correlation(dim, rs, my_pair_correlation)
 
 ```
 Note that when specifying a pair-correlation, the minimal distance between particles will be taken to be `pair.r[1]`. This is stored in `pair.minimal_distance`.
