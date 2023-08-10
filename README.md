@@ -180,7 +180,7 @@ ks = 0.2:0.2:20.0
 sfactor = structure_factor(pair, ks)
 
 plot(sfactor.k, sfactor.S,
-    xlims = "ks", lab = "struct. factor")
+    xlab = "ks", lab = "struct. factor")
 ```
 ![../PY-30-struct.png](docs/src/assets/PY-30-struct.png)
 
