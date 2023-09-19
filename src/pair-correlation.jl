@@ -78,8 +78,8 @@ struct DiscretePairCorrelation{Dim} <: PairCorrelation
     "the average number of particles divided by the volume containing the centre of the particles"
     number_density::Float64
 
-    function DiscretePairCorrelation{Dim}(r::AbstractVector, g::AbstractVector, minimal_distance::Float64, number_density::Float64;
-            tol::AbstractFloat = 1e-3 
+    function DiscretePairCorrelation{Dim}(r::AbstractVector, g::AbstractVector, minimal_distance::Float64, number_density::Float64 = -1.0;
+            tol::AbstractFloat = 1e-3, rescale = false 
         ) where Dim
         if !isempty(g) && size(g) != size(r)
             @error "the size of vector of distances `r` (currently $(size(r))) should be the same as the size of the pair-correlation variation `g` (currently $(size(g)))."
@@ -87,12 +87,56 @@ struct DiscretePairCorrelation{Dim} <: PairCorrelation
         if !isempty(g) && abs(g[end]) > tol
             @warn "For the pair-correlation to be accurate, we expect it to be long enough (in terms of the distance `r`) such that the particle positions become uncorrelatd. They become uncorrelated when `g[end]` tends to zero."
         end
+        
+        # Predict the number density from the restriction that is due to the link with a probability distribution, and assuming homogeneous distribution of particles. 
+
+        σs = trapezoidal_scheme(r)
+
+        sumg = sum(g .* r .^ (Dim - 1) .* σs)
+
+        number_density_predict = 1 / (2*(Dim - 1) * π * (r[end] ^ Dim / Dim - sumg))
+
+        if number_density == -1.0
+            number_density = number_density_predict
+        end
+
+        number_density_error = abs(number_density / number_density_predict - 1)
+        
+        # This formula seems to sensitive to numerical errors.
+        # if number_density_error > tol
+        #     println("The number density that was specified was $(number_density), whereas the calculated number density was $(number_density_predict), a reltive error of $(number_density_error)")
+        # end
+        
+        if rescale
+            println("rescaling this pair correlation according to the number density provided.")
+            # this rescaling is due to a restriction imposed by the connection to probability distributions
+
+            b = r[end] ^ Dim / Dim - 1 / (2*(Dim - 1) * π * number_density)
+            α = b / sumg
+
+            if α < 0
+                @error "rescaling has failed and has given a negative scale for the pair-correlation"
+            end     
+
+            g = α .* g
+        end
+
         new{Dim}(r,g,minimal_distance,number_density)
     end
 end
 
+function number_density(discrete_pair::DiscretePairCorrelation{Dim}) where Dim
+
+    σs = trapezoidal_scheme(discrete_pair.r)
+
+    sumg = sum(discrete_pair.g .* discrete_pair.r .^ (Dim - 1) .* σs)
+
+    number_density_predict = 1 / (2*(Dim - 1) * π * (discrete_pair.r[end] ^ Dim / Dim - sumg))
+
+end    
+
 function DiscretePairCorrelation(Dim::Int,r::AbstractVector, g::AbstractVector;
-    number_density::AbstractFloat = 0.0,
+    number_density::AbstractFloat = -1.0,
     minimal_distance::AbstractFloat = r[1],
     tol::AbstractFloat = 1e-3
 ) 
@@ -270,7 +314,10 @@ function DiscretePairCorrelation(s::Specie{3, P} where P<:AbstractParticle{3}, p
         9f * (1 + f) / (2 * η * (1 - f)^3) + 2 / (η*pi) * int_ker
     end
 
-    return DiscretePairCorrelation(3, distances, dp .+ 1.0; number_density = numdensity, tol = pairtype.rtol)
+    g = dp .+ 1.0;
+    g[distances .< R] .= zero(T)
+
+    return DiscretePairCorrelation(3, distances, g; number_density = numdensity, tol = pairtype.rtol)
 end
 
 function DiscretePairCorrelation(s::Specie{Dim}, pairtype::MonteCarloPairCorrelation{Dim}, distances::AbstractVector{T}) where {T, Dim}

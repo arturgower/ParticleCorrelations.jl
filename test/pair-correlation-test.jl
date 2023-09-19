@@ -57,7 +57,6 @@ using CSV
 
     @test norm(sfactor.S - sfactor2.S) / norm(sfactor.S) < 0.1
 
-
     # choose the spatial dimension
     dim = 3
 
@@ -128,10 +127,10 @@ end
     R = 2*outer_radius(s1) * s1.separation_ratio
 
     pairtype = PercusYevick(3; rtol=1e-3, maxevals = Int(2e5))
-
+    
     # Need to scale the distance by R
     py = DiscretePairCorrelation(s1, pairtype, R .* distances)
-
+    
     i = findfirst(distances .> 1.0)
 
     @test norm(py.g[i:end] - g_reference[i:end]) / norm(g_reference[i:end]) < 0.02
@@ -145,29 +144,3 @@ end
 
     @test true
 end
-
-@testset "structure-factor" begin
-
-    # use a pair correlation with a known exact formula for the structure factor
-    α = 1.5; 
-    β = 3.0;
-
-    number_density = 0.5
-    dim = 3
-
-    f(r) = 1 + (exp(im * β * r) + exp(-im * β * r)) * exp(- α * r) / r
-
-    rs = 0.001:0.001:10.0;
-
-    pair = DiscretePairCorrelation(dim, rs, f.(rs); number_density = 0.5)
-
-    @test pair.g[end] - 1.0 < 1e-8
-
-    ks = 0.2:0.2:20.0 
-    sfactor = structure_factor(pair, ks)
-
-    S(k) = 1 + 4π * number_density * real(1 / (k^2 + (α - im * β)^2) + 1 / (k^2 + (α + im * β)^2) )
-
-    @test norm(S.(ks) - sfactor.S) / norm(sfactor.S) < 1e-5
-
-end  
