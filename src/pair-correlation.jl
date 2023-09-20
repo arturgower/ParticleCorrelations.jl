@@ -89,36 +89,37 @@ struct DiscretePairCorrelation{Dim} <: PairCorrelation
         end
         
         # Predict the number density from the restriction that is due to the link with a probability distribution, and assuming homogeneous distribution of particles. 
+        if !isempty(r)
+            σs = trapezoidal_scheme(r)
 
-        σs = trapezoidal_scheme(r)
+            sumg = sum(g .* r .^ (Dim - 1) .* σs)
 
-        sumg = sum(g .* r .^ (Dim - 1) .* σs)
+            number_density_predict = 1 / (2*(Dim - 1) * π * (r[end] ^ Dim / Dim - sumg))
 
-        number_density_predict = 1 / (2*(Dim - 1) * π * (r[end] ^ Dim / Dim - sumg))
+            if number_density == -1.0
+                number_density = number_density_predict
+            end
 
-        if number_density == -1.0
-            number_density = number_density_predict
-        end
-
-        number_density_error = abs(number_density / number_density_predict - 1)
+            number_density_error = abs(number_density / number_density_predict - 1)
         
-        # This formula seems to sensitive to numerical errors.
-        # if number_density_error > tol
-        #     println("The number density that was specified was $(number_density), whereas the calculated number density was $(number_density_predict), a reltive error of $(number_density_error)")
-        # end
+            # This formula seems to sensitive to numerical errors.
+            # if number_density_error > tol
+            #     println("The number density that was specified was $(number_density), whereas the calculated number density was $(number_density_predict), a reltive error of $(number_density_error)")
+            # end
         
-        if rescale
-            println("rescaling this pair correlation according to the number density provided.")
-            # this rescaling is due to a restriction imposed by the connection to probability distributions
+            if rescale
+                println("rescaling this pair correlation according to the number density provided.")
+                # this rescaling is due to a restriction imposed by the connection to probability distributions
 
-            b = r[end] ^ Dim / Dim - 1 / (2*(Dim - 1) * π * number_density)
-            α = b / sumg
+                b = r[end] ^ Dim / Dim - 1 / (2*(Dim - 1) * π * number_density)
+                α = b / sumg
 
-            if α < 0
-                @error "rescaling has failed and has given a negative scale for the pair-correlation"
-            end     
+                if α < 0
+                    @error "rescaling has failed and has given a negative scale for the pair-correlation"
+                end     
 
-            g = α .* g
+                g = α .* g
+            end
         end
 
         new{Dim}(r,g,minimal_distance,number_density)
