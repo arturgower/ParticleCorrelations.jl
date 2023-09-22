@@ -1,7 +1,7 @@
 # Here we calculate a particle configuration from a structure factor
 
 using ParticleCorrelations
-using Test, Statistics
+using Test, Statistics, LinearAlgebra
 
 using Plots
 
@@ -52,7 +52,7 @@ plot(sfactor.k, sfactor.S)
 using Optim
 
 
-target_structure = sfactor
+target_S = sfactor
 Dim = 2
 numberofparticles = 200
 correlation_length = 4
@@ -86,22 +86,82 @@ function optimise_particulate(target_S::DiscreteStructureFactor{Dim}, specie::Sp
 
     S = structure_factor(particles,ks; inner_box = reg1)
 
+    points = origin.(particles)
+    x0 = vcat(points...)
+
     function objective(x)
         points = Iterators.partition(x,Dim) |> collect
-        S = DiscreteStructureFactor(points, ks; inner_box = reg1)
+        S = DiscreteStructureFactor(points, target_S.k; inner_box = reg1)
 
-        return sum(abs2(S - target_S))
+        return sum(abs2.(S.S - target_S.S))
     end
+
+    ks = abs.(target_S.k)
 
     function g!(G, x)
         points = Iterators.partition(x,Dim) |> collect
-        S = DiscreteStructureFactor(points, ks; inner_box = reg1)
-        
-        G[1] = -2.0 * (1.0 - S[1]) 
-    end
+        points1 = filter(p -> p ∈ reg1, points)
+        J1 = length(points1)  
 
-end    
+        S = DiscreteStructureFactor(points, target_S.k; inner_box = reg1)
+        dS = S.S - target_S.S # add quadradture weight w here if wanted
 
+        G[:] = vcat(map(points) do p
+            sum(
+                if p1 == p
+                    zeros(Float64, Dim)
+                else     
+                    Rji = p - p1
+                    nRji = norm(Rji)
+                    
+                    Gji = (p ∈ reg1 ? 2 : 1) * sum(diffbesselj.(0, ks .* nRji) .* dS) / J1
+                    2 * Gji * Rji / nRji
+                end    
+            for p1 in points1)
+        end...)
+    end    
+    
+    optimize(objective, g!, x0, LBFGS())
+end
+
+
+
+points = Iterators.partition(x,Dim) |> collect
+points1 = filter(p -> p ∈ reg1, points)
+J1 = length(points1)  
+
+S = DiscreteStructureFactor(points, target_S.k; inner_box = reg1)
+dS = S.S - target_S.S # add quadradture weight w here if wanted
+
+G = vcat(map(points) do p
+    sum(
+        if p1 == p
+            zeros(Float64, Dim)
+        else     
+            Rji = p - p1
+            nRji = norm(Rji)
+            
+            Gji = (p ∈ reg1 ? 2 : 1) * sum(diffbesselj.(0, ks .* nRji) .* dS) / J1
+            2 * Gji * Rji / nRji
+        end    
+    for p1 in points1)
+end...)
+
+
+DfDrs = Iterators.partition(G,Dim) |> collect
+
+plot(particles)
+plot!(reg1)
+
+x = [p[1] for p in points];
+y = [p[2] for p in points];
+
+u = [p[1] for p in DfDrs];
+v = [p[2] for p in DfDrs];
+
+scale = 6
+quiver!(x,y,quiver=(scale .* u,scale .* v))
+plot!()
 
 g = 1.0 .+ exp.(-(rs .- 4a).^2)
 
