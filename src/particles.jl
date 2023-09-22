@@ -68,3 +68,55 @@ number_density(ss::Species) = sum(number_density.(ss))
 
 outer_radius(s::Specie) = outer_radius(s.particle)
 exclusion_distance(s::Specie) = outer_radius(s) * s.separation_ratio
+
+function periodic_particles(box::Box{T,Dim}, specie::Specie{Dim}; 
+        random_perturbation = false) where {T, Dim}
+
+    # get the basis vectors 
+    Id = Matrix(I, Dim, Dim)
+    vs = [Id[:,i] for i = 1:Dim]
+
+    cell_volume = 1 / number_density(specie);
+
+    α = (cell_volume / prod(box.dimensions))^(1/Dim)
+    cell_dimensions = α .* box.dimensions
+
+    # rescale basis vectors for one cell  
+    vs = vs .* cell_dimensions
+
+    # calculate the total number of steps along each dimension
+    steps = Int.(floor.(box.dimensions ./ cell_dimensions))
+    
+    # create a multi-dimensional array to transverse along each cell
+    grid = CartesianIndices(Tuple(steps))
+
+    # The starting point in space for the grid
+    bottom_corner = origin(box) - box.dimensions ./ 2
+    bottom_corner = bottom_corner + cell_dimensions ./ 2
+
+    particle_shape = specie.particle.shape
+
+    if random_perturbation
+        random_lengths = cell_dimensions ./ 2 .- 2 .* outer_radius(specie)
+        for i in eachindex(random_lengths)
+            if random_lengths[i] < 0
+                random_lengths[i] = 0
+            end
+        end        
+    else random_lengths = zeros(Dim)
+    end       
+
+    particles = map(grid) do i
+        cell_numbers = [Tuple(i)...] .- 1 
+        random_move = rand(Dim) .* random_lengths - random_lengths ./ 2
+        
+        position = bottom_corner + sum(vs .* cell_numbers)
+        position = position + random_move
+
+        Particle(specie.particle.medium, congruent(particle_shape, position))
+        # println(i[1],",",i[2])
+        # println([Tuple(i)...])
+    end
+    
+    return particles[:]
+end    

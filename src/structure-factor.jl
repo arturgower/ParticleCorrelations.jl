@@ -56,14 +56,17 @@ function DiscreteStructureFactor(particles::Vector{p} where p <: AbstractParticl
     return DiscreteStructureFactor(particle_centres, ks; kws...)
 end
 
-function DiscreteStructureFactor(points::Vector{v} where v <: AbstractVector{T}, ks::AbstractVector{T} = Float64[]; correlation_length::T = 0.0) where T <: AbstractFloat
-    
-    box = Box(points)
-    Dim = length(box.dimensions)  
-    
-    dims = box.dimensions .- 2 * correlation_length
-    inner_box = Box(box.origin, dims)
+function DiscreteStructureFactor(points::AbstractVector{v} where v <: AbstractVector{T}, ks::AbstractVector{T} = Float64[]; 
+        correlation_length::T = 0.0,
+        inner_box::Box{T, Dim} = Box(points[1:1])
+    ) where {T <: AbstractFloat, Dim}
 
+    if volume(inner_box) ≈ 0
+        box = Box(points); 
+        dims = box.dimensions .- 2 * correlation_length;
+        inner_box = Box(box.origin, dims) 
+    end    
+    
     inner_points = filter(p -> p ∈ inner_box, points) 
 
     Rijs = [ 

@@ -28,15 +28,17 @@ medium = HardMedium{dim}()
 # Choose the species, which represents a collection of one type of particle
 radius = 0.5
 
-s = Specie(
+specie = Specie(
     medium,
     Sphere(dim, radius),
     volume_fraction = 0.15,
     separation_ratio = 1.0 # minimal distance from this particle = r * (separation_ratio - 1.0) 
 );
 
+specie.particle.medium
+
 rs = 0.2:0.4:8.0
-pair = pair_correlation(s, pairtype, rs)
+pair = pair_correlation(specie, pairtype, rs)
 
 
 # If you have the Plots package
@@ -47,33 +49,59 @@ sfactor = structure_factor(pair, ks)
 
 plot(sfactor.k, sfactor.S)
 
-
-# Define two regions R1 and R2 to place the particles
-reg1 = Box([[-40.0, -40.0],[40.0, 40.0]]);
-reg2 = Box([[-42.0, -42.0],[42.0, 42.0]]);
-
-Dim = 2 
-
-# box = reg2
-function periodic_particles(box::Box{T,Dim}, specie::Specie{Dim}) where {T, Dim}
-    
-    Id = Matrix(I, Dim, Dim)
-    vs = [Id[:,i] for i = 1:Dim]
-
-    n = number_density(specie)
-
-    cell_length = (1 / n)^(1/Dim) / 2
-
-    d1 = origin(box) - box.dimensions ./ (2)
-    d2 = origin(box) + box.dimensions ./ (2)
-    
-end    
-
 using Optim
 
-function g!(G, S)
-    G[1] = -2.0 * (1.0 - S[1]) 
-end
+
+target_structure = sfactor
+Dim = 2
+numberofparticles = 200
+correlation_length = 4
+
+function optimise_particulate(target_S::DiscreteStructureFactor{Dim}, specie::Specie{Dim};
+        correlation_length::Float64 = 4.0, 
+        numberofparticles::Int = 200) where Dim
+
+    # Define two regions R1 and R2 to place the particles
+    cell_number = (numberofparticles)^(1/Dim) |> round
+
+    cell_volume = 1 / number_density(specie);
+    cell_length = cell_volume ^ (1/Dim)
+    box_length = cell_length * cell_number
+
+    reg1 = Box([
+        [-box_length/2, -box_length/2],
+        [box_length/2, box_length/2]
+    ]);
+
+    cell_number_boundary = ceil(correlation_length/(2 * cell_length))
+    boundary_length = cell_number_boundary * cell_length
+
+    reg2 = Box([
+        [-box_length/2 - boundary_length, -box_length/2 - boundary_length],
+        [box_length/2 + boundary_length, box_length/2 + boundary_length]
+    ]);
+
+    particles = periodic_particles(reg2,specie; random_perturbation = true)
+    particles1 = filter(p -> p ⊆ reg1, particles)  
+
+    S = structure_factor(particles,ks; inner_box = reg1)
+
+    function objective(x)
+        points = Iterators.partition(x,Dim) |> collect
+        S = DiscreteStructureFactor(points, ks; inner_box = reg1)
+
+        return sum(abs2(S - target_S))
+    end
+
+    function g!(G, x)
+        points = Iterators.partition(x,Dim) |> collect
+        S = DiscreteStructureFactor(points, ks; inner_box = reg1)
+        
+        G[1] = -2.0 * (1.0 - S[1]) 
+    end
+
+end    
+
 
 g = 1.0 .+ exp.(-(rs .- 4a).^2)
 

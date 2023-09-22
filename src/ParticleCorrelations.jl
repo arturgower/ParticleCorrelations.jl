@@ -2,6 +2,7 @@ module ParticleCorrelations
 
 export Specie, Species, number_density, volume_fraction, exclusion_distance
 export HardMedium
+export periodic_particles
 
 ## Pair correlation
 export DiscretePairCorrelation, DiscreteStructureFactor
