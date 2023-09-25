@@ -1,8 +1,9 @@
 module ParticleCorrelations
 
-export Specie, Species, number_density, volume_fraction, exclusion_distance
+export Specie, Species, volume_fraction, exclusion_distance
 export HardMedium
-export periodic_particles
+export number_density, translate_pair_correlation
+export periodic_particles, trapezoidal_scheme, optimise_particulate
 
 ## Pair correlation
 export DiscretePairCorrelation, DiscreteStructureFactor
@@ -32,5 +33,7 @@ include("particles.jl")
 include("pair-correlation.jl")
 include("structure-factor.jl")
 include("numerical.jl")
+include("inverse-problem.jl")
+
 
 end

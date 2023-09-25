@@ -13,14 +13,6 @@ Dim = 2
 # choose the medium for the particles. Currently only one type
 medium = HardMedium{Dim}()
 
-# choose the shapes of the particles
-
-pairtype = MonteCarloPairCorrelation(Dim; 
-    rtol = 1e-3, 
-    maxlength = 100, 
-    iterations = 10, 
-    numberofparticles = 3000
-)
 
 # choose the medium for the particles. Currently only one type
 medium = HardMedium{Dim}()
@@ -38,7 +30,32 @@ specie = Specie(
 specie.particle.medium
 
 rs = 0.2:0.4:8.0
-pair = pair_correlation(specie, pairtype, rs)
+
+## An artificial pair-correlation like hyper-uniform disorder.
+a = 1.0
+R = 8.0;
+rs = (2a):0.01:R
+
+g = 1.0 .+ sin.(-2 .* (rs .- 3.6a) .^ 2) ./ (-2 .* (rs .- 3.6a).^ 2)
+# g = 1.0 .+ cos.(-2 .* (rs .- 2a)) .* exp.(- rs)
+# g = 1.0 .+ exp.(- 6rs ./ R )
+
+dpair = DiscretePairCorrelation(2, rs, g)
+
+plot(dpair.r, dpair.g)
+
+number_density(dpair)
+
+
+volfrac = 0.15;
+numdensity = volfrac / volume(specie)
+
+dpair = translate_pair_correlation(dpair, numdensity)
+plot!(dpair.r, dpair.g)
+plot!([dpair.r[1],dpair.r[end]], [1.0,1.0])
+
+number_density(dpair)
+# pair = pair_correlation(Dim, r, g)
 
 
 # If you have the Plots package
@@ -160,15 +177,6 @@ fs = objective.(xs)
 
 plot(fs)
 
-## An arteficial pair-correlation like hyper-uniform disorder.
-a = 1.0
-rs = 0.2:0.4:8.0
-
-g = 1.0 .+ exp.(-(rs .- 4a).^2)
-
-dpair = DiscretePairCorrelation(2, rs, g)
-
-number_density(dpair)
 
 plot(rs,g)
 

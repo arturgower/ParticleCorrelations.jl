@@ -132,9 +132,27 @@ function number_density(discrete_pair::DiscretePairCorrelation{Dim}) where Dim
 
     sumg = sum(discrete_pair.g .* discrete_pair.r .^ (Dim - 1) .* σs)
 
-    number_density_predict = 1 / (2*(Dim - 1) * π * (discrete_pair.r[end] ^ Dim / Dim - sumg))
+    term = discrete_pair.r[end] ^ Dim / Dim - sumg;
 
-end    
+    number_density_predict = 1 / (2*(Dim - 1) * π * term)
+end
+
+function translate_pair_correlation(discrete_pair::DiscretePairCorrelation{Dim}, number_density::Float64) where Dim
+
+    R =  discrete_pair.r[end]
+    σs = trapezoidal_scheme(discrete_pair.r)
+
+    dp = exp.(- 6rs ./ R )
+
+    sumg = sum(discrete_pair.g .* discrete_pair.r .^ (Dim - 1) .* σs)
+    sumdp = sum(dp .* discrete_pair.r .^ (Dim - 1) .* σs)
+
+    α = (R^Dim / Dim - (1 / (2*(Dim - 1) * pi * number_density)) - sumg) / sumdp
+
+    scaled_discrete_pair = DiscretePairCorrelation(Dim, discrete_pair.r, discrete_pair.g + α .* dp; number_density = number_density)
+
+    return scaled_discrete_pair
+end
 
 function DiscretePairCorrelation(Dim::Int,r::AbstractVector, g::AbstractVector;
     number_density::AbstractFloat = -1.0,
