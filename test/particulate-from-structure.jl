@@ -3,7 +3,7 @@
 using ParticleCorrelations
 using Test, Statistics, LinearAlgebra
 
-using Plots
+using Plots, Optim
 
 # let us first aim to recover a MonteCarlo pair-correlation from a crystalline arrangement
 
@@ -18,8 +18,8 @@ medium = HardMedium{Dim}()
 pairtype = MonteCarloPairCorrelation(Dim; 
     rtol = 1e-3, 
     maxlength = 100, 
-    iterations = 10, 
-    numberofparticles = 3000
+    iterations = 200, 
+    numberofparticles = 4000
 )
 
 # choose the medium for the particles. Currently only one type
@@ -30,95 +30,200 @@ radius = 0.5
 
 specie = Specie(
     medium,
-    Sphere(Dim, radius),
+    MultipleScattering.Sphere(Dim, radius),
     volume_fraction = 0.15,
     separation_ratio = 1.0 # minimal distance from this particle = r * (separation_ratio - 1.0) 
 );
 
 specie.particle.medium
 
-rs = 0.2:0.4:8.0
+rs = 0.2:0.2:8.0
 pair = pair_correlation(specie, pairtype, rs)
 
-
 # If you have the Plots package
-plot(pair.r, pair.g)
 
-ks = 1.0:0.5:50.0
-ks = 1.0:0.3:40.0
-ks2 = 1.0:0.2:160.0
+h = 220
+gr(size = (h * 1.6, h), linewidth = 2.0)
+
+plot(pair.r, pair.g, 
+    title = "Percus-Yevick",
+    ylab = "pair-correlation", xlab = "z (distance)",
+    lab = ""
+)
+# savefig("percus-yevick-pair.pdf")
+
+# rs = 0.2:0.4:8.0
+
+D1 = 40; 
+k1 = 4pi /D1;
+k2 = 2pi /radius;
+
+ks = k1:k1:(2k2)
+ks2 = k1:(k1/2):(3k2)
+
+ks = 0.3:0.3:20.0
+ks2 = 0.3:0.2:40.0
+
 sfactor = structure_factor(pair, ks)
 sfactor2 = structure_factor(pair, ks2)
 
-plot(sfactor.k, sfactor.S)
-plot!(sfactor2.k, sfactor2.S)
+h = 230
+pyplot(size = (h*1.6,h))
+plot(sfactor.k, sfactor.S,
+    title = "Percus-Yevick",
+    ylab = "structure factor", xlab = "k (wavenumber)",
+    lab = ""
+)
+# savefig("percus-yevick-S.pdf")
 
-using Optim
+
+plot!(sfactor2.k, sfactor2.S, linestyle = :dash)
 
 # target_S = sfactor
-# Dim = 2
-# numberofparticles = 200
-# correlation_length = 4
+Dim = 2
+numberofparticles = 600
+correlation_length = 4
+target_S = sfactor
 
-res = optimise_particulate(sfactor, specie;
-    numberofparticles = 300,
-    optimoptions = Optim.Options(g_tol = 0.0, f_tol = 1e-5, iterations = 20)
+res1, res = optimise_particulate(sfactor, specie;
+    numberofparticles = numberofparticles,
+    method = LBFGS(),
+    optimoptions = Optim.Options(g_tol = 0.0, f_tol = 1e-10, iterations = 15)
+    # optimoptions = Optim.Options(method = LBFGS(), g_tol = 0.0, f_tol = 1e-10, iterations = 20)
 )
 
 show(res)
 
+x = res1.minimizer
+points1 = Iterators.partition(x,Dim) |> collect
+particles1 = [Particle(medium,congruent(specie.particle.shape,p)) for p in points1]
+
+plot(particles1)
+
 x = res.minimizer
 points = Iterators.partition(x,Dim) |> collect
-x1 = [p[1] for p in points]
-x2 = [p[2] for p in points]
+particles = [Particle(medium,congruent(specie.particle.shape,p)) for p in points]
 
-scatter(x1,x2)
-# scatter(x1,x2, xlims =(-30.0,30.0), ylims = (-30.0,30.0))
+plot(particles)
+
 
 outer_box = Box(points);
 inner_box = Box(outer_box.origin, outer_box.dimensions .- 8.0);
 
+ # Define two regions R1 and R2 to place the particles
+ cell_number = (numberofparticles)^(1/Dim) |> round
+
+ cell_volume = 1 / number_density(specie);
+ cell_length = cell_volume ^ (1/Dim)
+ box_length = cell_length * cell_number
+
+ reg1 = Box([
+     [-box_length/2, -box_length/2],
+     [box_length/2, box_length/2]
+ ]);
+
+ cell_number_boundary = ceil(correlation_length/(2 * cell_length))
+ boundary_length = cell_number_boundary * cell_length
+
+ reg2 = Box([
+     [-box_length/2 - boundary_length, -box_length/2 - boundary_length],
+     [box_length/2 + boundary_length, box_length/2 + boundary_length]
+ ]);
+
+
+inner_box = reg1
+
+
+pyplot(size = (420,420), linewidth = 1.0)
+plot(particles, title="Predicted particle configuration",  
+    xguide = "", yguide =""
+    # xlims = (-40,40), ylims = (-30,30)
+)
+plot!(reg1,  xlab = "", ylab = "",axis = false) 
+# savefig("predicted_particles.pdf")   
+# scatter(x1,x2, xlims =(-30.0,30.0), ylims = (-30.0,30.0))
+
+
+particles0 = periodic_particles(reg2,specie; random_perturbation = true)
+
+pyplot(size = (420,420), linewidth = 1.0)
+plot(particles0, title="Initial particle configuration",  
+    xguide = "", yguide ="", 
+    # xlims = (-40,40), ylims = (-30,30)
+    )
+plot!(reg1,  xlab = "", ylab = "",axis = false) 
+# savefig("initial_particles.pdf") 
+
+
+result1_S = DiscreteStructureFactor(points1, ks; 
+    inner_box = inner_box
+)
+sum(abs2.(result1_S.S - sfactor.S)) / sum(abs2.(sfactor.S))
+
 result_S = DiscreteStructureFactor(points, ks; 
     inner_box = inner_box
 )
-norm(result_S.S - sfactor.S)
+sum(abs2.(result_S.S - sfactor.S)) / sum(abs2.(sfactor.S))
 
-plot(result_S.k, result_S.S)
-plot!(sfactor.k, sfactor.S, linestyle = :dash)
+h = 220
+gr(size = (h * 1.6, h), linewidth = 2.0)
+plot(result1_S.k, result1_S.S)
+plot(sfactor.k, sfactor.S, label = "target")
+plot!(result_S.k, result_S.S, 
+    linestyle = :dash, label = "fitted")
+plot!(ylab = "Structure factor", xlab = "k (wavenumber)")
+# savefig("fitter-structure-factor.pdf")
+
+# plot!(xlims = (0.0,20.0), ylims = (0.0,2.0))
 
 result_S = DiscreteStructureFactor(points, ks2; 
     inner_box = inner_box
 )
 
 plot(result_S.k, result_S.S)
-plot!(sfactor2.k, sfactor2.S, linestyle = :dash)
+plot!(sfactor2.k, sfactor2.S, linestyle = :dash, 
+    ylims = (0,1.4), xlims = (0.01,20))
+
+rs = pair.r
+rs = 0.2:0.4:12.0
+rs = 0.2:0.22:10.0
+result_pair = DiscretePairCorrelation(points, rs)
+result_pair1 = DiscretePairCorrelation(points1, rs)
+
+plot(pair.r, pair.g, label = "target")
+plot!(rs, result_pair1.g, linestyle = :dash, label = "fitted")
+plot!(ylab = "Pair correlation", xlab = "z (distance)")
+# savefig("fit-pair-correlation.pdf")
+
+plot!(rs, result_pair.g, linestyle = :dash)
 
 
-result_pair = DiscretePairCorrelation(points, pair.r)
-plot(pair.r, pair.g)
-plot!(result_pair.r, result_pair.g)
+# Check gradient and steps
 
+box = Box([[-20.0,-20.0],[20.0,20.0]])
+reg1 = Box([[-17.0,-17.0],[17.0,17.0]])
 
-points = origin.(particles)
-x = vcat(points...)
+particles = periodic_particles(box, specie; random_perturbation = true);
+points = origin.(particles);
+x1 = [p[1] for p in points]
+x2 = [p[2] for p in points]
 
-points = Iterators.partition(x,Dim) |> collect
+scatter(x1,x2)
+
 points1 = filter(p -> p ∈ reg1, points)
 J1 = length(points1)  
 
-S = DiscreteStructureFactor(points, target_S.k; inner_box = reg1)
-dS = S.S - target_S.S # add quadradture weight w here if wanted
-
+S = DiscreteStructureFactor(points, sfactor.k; inner_box = reg1)
+dS = S.S - sfactor.S # add quadradture weight w here if wanted
 
 function objective(x)
     points = Iterators.partition(x,Dim) |> collect
-    S = DiscreteStructureFactor(points, target_S.k; inner_box = reg1)
+    S = DiscreteStructureFactor(points, sfactor.k; inner_box = reg1)
 
-    return sum(abs2.(S.S - target_S.S))
+    return sum(abs2.(S.S - sfactor.S))
 end
 
-ks = abs.(target_S.k)
-
+ks = abs.(sfactor.k)
 
 
 G = vcat(map(points) do p
@@ -147,7 +252,7 @@ x2 = [p[2] for p in points];
 u = [p[1] for p in DfDrs];
 v = [p[2] for p in DfDrs];
 
-scale = 6
+scale = 2.0
 quiver!(x1,x2,quiver=(scale .* u,scale .* v))
 plot!()
 

@@ -13,7 +13,6 @@ Dim = 2
 # choose the medium for the particles. Currently only one type
 medium = HardMedium{Dim}()
 
-
 # choose the medium for the particles. Currently only one type
 medium = HardMedium{Dim}()
 
@@ -22,7 +21,7 @@ radius = 0.5
 
 specie = Specie(
     medium,
-    Sphere(Dim, radius),
+    MultipleScattering.Sphere(Dim, radius),
     volume_fraction = 0.15,
     separation_ratio = 1.0 # minimal distance from this particle = r * (separation_ratio - 1.0) 
 );
@@ -36,7 +35,8 @@ a = 1.0
 R = 8.0;
 rs = (2a):0.01:R
 
-g = 1.0 .+ sin.(-2 .* (rs .- 3.6a) .^ 2) ./ (-2 .* (rs .- 3.6a).^ 2)
+# g = 1.0 .+ sin.(-2 .* (rs .- 3a)) ./ (-2 .* (rs .- 3a))
+g = 1.0 .+ sin.(-5 .* (rs .- 2.9a)) ./ (-5 .* (rs .- 2.9a)) .+ 0.2 .* exp.(-2(rs .- 2.6a).^2)
 # g = 1.0 .+ cos.(-2 .* (rs .- 2a)) .* exp.(- rs)
 # g = 1.0 .+ exp.(- 6rs ./ R )
 
@@ -50,22 +50,23 @@ number_density(dpair)
 volfrac = 0.15;
 numdensity = volfrac / volume(specie)
 
-dpair = translate_pair_correlation(dpair, numdensity)
+# dpair = translate_pair_correlation(dpair, numdensity)
+# dpair = translate_pair_correlation(dpair, numdensity; dg = r-> exp(-4.2r/R))
+dpair = translate_pair_correlation(dpair, numdensity; dg = r-> exp(-3r/R))
 plot!(dpair.r, dpair.g)
-plot!([dpair.r[1],dpair.r[end]], [1.0,1.0])
+plot!([dpair.r[1],dpair.r[end]], [1.0,1.0], ylims = (0.0,:auto))
 
 number_density(dpair)
 # pair = pair_correlation(Dim, r, g)
 
 
 # If you have the Plots package
-plot(pair.r, pair.g)
+plot(dpair.r, dpair.g)
 
-ks = 1.0:0.5:50.0
-ks = 1.0:0.3:40.0
-ks2 = 1.0:0.2:160.0
-sfactor = structure_factor(pair, ks)
-sfactor2 = structure_factor(pair, ks2)
+ks = 0.03:0.1:10.0
+ks2 = 0.03:0.05:20.0
+sfactor = structure_factor(dpair, ks)
+sfactor2 = structure_factor(dpair, ks2)
 
 plot(sfactor.k, sfactor.S)
 plot!(sfactor2.k, sfactor2.S)

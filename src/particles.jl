@@ -97,12 +97,7 @@ function periodic_particles(box::Box{T,Dim}, specie::Specie{Dim};
     particle_shape = specie.particle.shape
 
     if random_perturbation
-        random_lengths = cell_dimensions ./ 2 .- 2 .* outer_radius(specie)
-        for i in eachindex(random_lengths)
-            if random_lengths[i] < 0
-                random_lengths[i] = 0
-            end
-        end        
+        random_lengths = max.(0.0, cell_dimensions ./ 2 .- outer_radius(specie))
     else random_lengths = zeros(Dim)
     end       
 

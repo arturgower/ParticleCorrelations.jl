@@ -19,6 +19,7 @@ using Statistics
 using SpecialFunctions
 using LinearAlgebra
 using Reexport
+using Optim
 
 @reexport using MultipleScattering
 # using MultipleScattering: PhysicalMedium, AbstractParticle, Particle, Shape, Box, Sphere, Circle, outer_radius, random_particles
