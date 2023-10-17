@@ -402,9 +402,9 @@ function DiscretePairCorrelation(particles::Vector{p} where p <: AbstractParticl
 end
 
 function DiscretePairCorrelation(particle_centres::Vector{v} where v <: AbstractVector{T}, distances::AbstractVector{T};
-        dz::T = distances[2] - distances[1],
-        maximum_distance::T = distances[end] + dz/2,
-        minimum_distance::T = distances[1] - dz/2,
+        dz::T = distances[2] - distances[1], 
+        maximum_distance::T = distances[end] + dz/2, # the max possible distance between any two particles
+        minimum_distance::T = distances[1] - dz/2, # the min possible distance between any two particles. 
         region_particle_centres::Shape = Box(zeros(length(particle_centres[1])))
     ) where {T}
 
@@ -453,6 +453,7 @@ function DiscretePairCorrelation(particle_centres::Vector{v} where v <: Abstract
     J2 = length(p2s)
 
     numdensity = J2 / volume(outer_box)
+    # numdensity1 = J1 / volume(inner_box)
 
     # scaling = (1 / ((2 * (Dim - 1)) * pi * dz)) * J2 / ((J2 - 1) * J1 * numdensity)
     # scaling = (1 / ((2 * (Dim - 1)) * pi * dz)) / (J1 * numdensity)

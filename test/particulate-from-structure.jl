@@ -18,9 +18,16 @@ medium = HardMedium{Dim}()
 pairtype = MonteCarloPairCorrelation(Dim; 
     rtol = 1e-3, 
     maxlength = 100, 
-    iterations = 200, 
+    iterations = 800, 
     numberofparticles = 4000
 )
+
+# pairtype = MonteCarloPairCorrelation(Dim; 
+#     rtol = 1e-3, 
+#     maxlength = 100, 
+#     iterations = 1, 
+#     numberofparticles = 10000
+# )
 
 # choose the medium for the particles. Currently only one type
 medium = HardMedium{Dim}()
@@ -34,11 +41,26 @@ specie = Specie(
     volume_fraction = 0.15,
     separation_ratio = 1.0 # minimal distance from this particle = r * (separation_ratio - 1.0) 
 );
+s = specie
 
 specie.particle.medium
 
-rs = 0.2:0.2:8.0
+dr = 0.05
+rs = (2radius + dr/2):dr:4.0
+distances = rs
+T = Float64
+
 pair = pair_correlation(specie, pairtype, rs)
+
+# check the restriction from prob. dist.
+σ = trapezoidal_scheme(pair.r)
+
+sum(σ .* pair.g .* pair.r)
+sum(dr .* pair.g .* pair.r)
+
+pair.r[end]^2 / 2 - 1 / (2pi * pair.number_density)
+
+(pair.r[end] + dr/2)^2 / 2 - 1 / (2pi * pair.number_density)
 
 # If you have the Plots package
 
@@ -52,6 +74,27 @@ plot(pair.r, pair.g,
 )
 # savefig("percus-yevick-pair.pdf")
 
+
+using Interpolations
+
+extrap = LinearInterpolation(pair.r[2:end], pair.g[2:end], extrapolation_bc = Line())
+
+
+# itp = interpolate(pair.g[2:end], BSpline(Cubic(Line(OnGrid()))))
+# itp = interpolate(pair.g[2:end], BSpline(Linear()))
+
+# sitp = scale(itp, rs[2:end])
+
+rs2 = (2radius):0.01:rs[end]
+g2 = extrap.(rs2)
+
+plot!(rs2, g2, linestyle = :dash, xlims = (0.95,3.5))
+
+σ2 = trapezoidal_scheme(rs2)
+
+sum(σ2 .* g2 .* rs2)
+
+
 # rs = 0.2:0.4:8.0
 
 D1 = 40; 
@@ -61,8 +104,8 @@ k2 = 2pi /radius;
 ks = k1:k1:(2k2)
 ks2 = k1:(k1/2):(3k2)
 
-ks = 0.3:0.3:20.0
-ks2 = 0.3:0.2:40.0
+ks = 0.1:0.3:40.0
+ks2 = 0.1:0.2:50.0
 
 sfactor = structure_factor(pair, ks)
 sfactor2 = structure_factor(pair, ks2)
@@ -98,6 +141,7 @@ x = res1.minimizer
 points1 = Iterators.partition(x,Dim) |> collect
 particles1 = [Particle(medium,congruent(specie.particle.shape,p)) for p in points1]
 
+pyplot(size = (420,420), linewidth = 1.0)
 plot(particles1)
 
 x = res.minimizer
@@ -186,7 +230,7 @@ plot!(sfactor2.k, sfactor2.S, linestyle = :dash,
 
 rs = pair.r
 rs = 0.2:0.4:12.0
-rs = 0.2:0.22:10.0
+rs = 0.2:0.35:10.0
 result_pair = DiscretePairCorrelation(points, rs)
 result_pair1 = DiscretePairCorrelation(points1, rs)
 
