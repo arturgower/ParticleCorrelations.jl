@@ -30,6 +30,8 @@ using HCubature: hcubature, hquadrature
 # using ClassicalOrthogonalPolynomials: Legendre
 using LegendrePolynomials
 
+Sphere = MultipleScattering.Sphere
+
 include("particles.jl")
 include("pair-correlation.jl")
 include("structure-factor.jl")

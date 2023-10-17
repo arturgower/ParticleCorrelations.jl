@@ -26,7 +26,7 @@ pairtype = MonteCarloPairCorrelation(Dim;
 #     rtol = 1e-3, 
 #     maxlength = 100, 
 #     iterations = 1, 
-#     numberofparticles = 10000
+#     numberofparticles = 100000
 # )
 
 # choose the medium for the particles. Currently only one type
