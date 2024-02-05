@@ -46,7 +46,7 @@ function Specie(medium::P, radius::AbstractFloat; kws...) where P<:PhysicalMediu
 end
 
 # Shorthand for all Vectors of species
-Species{Dim,P} = Vector{S} where S<:Specie{Dim,P}
+Species{Dim,P} = Vector{S} where S<:Specie{Dim}
 
 
 "Returns the volume fraction of the specie."
