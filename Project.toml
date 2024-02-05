@@ -1,7 +1,7 @@
 name = "ParticleCorrelations"
 uuid = "2bdc0d93-21f3-4e16-a26e-769a2eaf80d4"
 authors = ["Artur Gower", "Aristeidis Karnezis"]
-version = "0.0.1"
+version = "0.0.2"
 
 [deps]
 HCubature = "19dc6840-f33b-545b-b366-655c7e3ffd49"
