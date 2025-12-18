@@ -1,4 +1,4 @@
-## A the top of the type tree we have:
+## At the top of the type tree we have:
 
 """
     PairCorrelationType
@@ -215,9 +215,7 @@ function DiscretePairCorrelation(s::Specie{Dim}, pairtype::PT;
     ) where {Dim,  T<:AbstractFloat, PT <: PairCorrelationType}
 
     r1 = exclusion_distance(s)
-
     R = 2r1
-    numdensity = number_density(s)
 
     automatic_dist = if isempty(distances)
         dr = pairtype.meshsize * r1
@@ -432,7 +430,7 @@ function DiscretePairCorrelation(particle_centres::Vector{v} where v <: Abstract
     p1s = filter(x -> x ∈ inner_box, p2s)
 
     if length(p1s) < 10
-        @error "There are only $(length(p1s)) particles in the feasible region. This is not enough to calculate the pair-correlation. To increase this number, and get a more accurate result, try: 1) increasing the number of particles or 2) using a shorter distance for the pair-correlation"
+        @error "There are only $(length(p1s)) particles in the feasible region. This is not enough to calculate the pair-correlation. To increase this number, and get a more accurate result, try: 1) increasing the number of particles (e.g. larger numberofparticles) or 2) using a shorter distance for the pair-correlation (e.g. smaller maxlength). For eaxmple "
     end
 
     N = length(distances)
