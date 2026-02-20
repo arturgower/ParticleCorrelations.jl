@@ -13,7 +13,7 @@ export PercusYevick, MonteCarloPairCorrelation, HoleCorrection
 export pair_correlation, structure_factor
 
 export hole_correction_pair_correlation, gls_pair_radial_fun, pair_radial_fun
-export calculate_pair_correlation, smooth_pair_corr_distance, pair_radial_to_pair_corr
+export smooth_pair_corr_distance, pair_radial_to_pair_corr
 
 using Statistics
 using SpecialFunctions
