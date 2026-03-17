@@ -79,25 +79,28 @@ struct DiscretePairCorrelation{Dim} <: PairCorrelation
     number_density::Float64
 
     function DiscretePairCorrelation{Dim}(r::AbstractVector, g::AbstractVector, minimal_distance::Float64, number_density::Float64 = -1.0;
-            tol::AbstractFloat = 1e-3, rescale = false 
+            tol::AbstractFloat = 1e-2, rescale = false 
         ) where Dim
         if !isempty(g) && size(g) != size(r)
             @error "the size of vector of distances `r` (currently $(size(r))) should be the same as the size of the pair-correlation variation `g` (currently $(size(g)))."
         end
-        if !isempty(g) && abs(g[end]) > tol
-            @warn "For the pair-correlation to be accurate, we expect it to be long enough (in terms of the distance `r`) such that the particle positions become uncorrelatd. They become uncorrelated when `g[end]` tends to zero."
+        if !isempty(g) && abs(g[end] - 1) > tol
+            @warn "For the pair-correlation to be accurate, we expect it to be long enough (in terms of the distance `r`) such that the particle positions become uncorrelatd. They become uncorrelated when `g[end]` tends to one."
         end
         
         # Predict the number density from the restriction that is due to the link with a probability distribution, and assuming homogeneous distribution of particles. 
         if !isempty(r)
-            σs = trapezoidal_scheme(r)
+            σs = trapezoidal_scheme(r);
 
-            sumg = sum(g .* r .^ (Dim - 1) .* σs)
+            sumg = sum(g .* r .^ (Dim - 1) .* σs);
 
+            # sumg = r[end] ^ Dim / Dim - 1 / (number_density_predict * 2 * (Dim - 1) * π) 
+            
             number_density_predict = 1 / (2*(Dim - 1) * π * (r[end] ^ Dim / Dim - sumg))
 
             if number_density == -1.0
                 number_density = number_density_predict
+                @warn "The number density was not specified, so it has been set to the value predicted by the pair correlation, which is highly inaccurate and is $(number_density)."
             end
 
             number_density_error = abs(number_density / number_density_predict - 1)
@@ -157,9 +160,9 @@ end
 function DiscretePairCorrelation(Dim::Int,r::AbstractVector, g::AbstractVector;
     number_density::AbstractFloat = -1.0,
     minimal_distance::AbstractFloat = r[1],
-    tol::AbstractFloat = 1e-3
+    kws...
 ) 
-    DiscretePairCorrelation{Dim}(r,g,minimal_distance,number_density; tol = tol)
+    DiscretePairCorrelation{Dim}(r,g,minimal_distance,number_density; kws...)
 end
 
 
